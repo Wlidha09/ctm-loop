@@ -1,4 +1,3 @@
-
 'use client';
 
 import React, { createContext, useContext } from 'react';
@@ -41,19 +40,13 @@ export function useFirebase() {
 }
 
 export function useFirebaseApp() {
-  const app = useFirebase().firebaseApp;
-  if (!app) throw new Error('FirebaseApp is not initialized. Check your configuration.');
-  return app;
+  return useFirebase().firebaseApp;
 }
 
 export function useFirestore() {
-  const db = useFirebase().firestore;
-  if (!db) throw new Error('Firestore is not initialized. Check your configuration.');
-  return db;
+  return useFirebase().firestore;
 }
 
 export function useAuth() {
-  const auth = useFirebase().auth;
-  if (!auth) throw new Error('Auth is not initialized. Check your configuration.');
-  return auth;
+  return useFirebase().auth;
 }

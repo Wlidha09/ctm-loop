@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useState } from "react"
@@ -8,8 +7,9 @@ import { doc, getDoc, setDoc, serverTimestamp } from "firebase/firestore"
 import { useAuth, useFirestore } from "@/firebase"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
-import { ShieldCheck, LogIn, Loader2 } from "lucide-react"
+import { ShieldCheck, LogIn, Loader2, AlertTriangle } from "lucide-react"
 import { toast } from "@/hooks/use-toast"
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 
 export default function LoginPage() {
   const [loading, setLoading] = useState(false)
@@ -17,7 +17,11 @@ export default function LoginPage() {
   const auth = useAuth()
   const db = useFirestore()
 
+  const isConfigured = !!auth && !!db
+
   const handleGoogleLogin = async () => {
+    if (!auth || !db) return
+
     setLoading(true)
     try {
       const googleProvider = new GoogleAuthProvider()
@@ -76,11 +80,21 @@ export default function LoginPage() {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4 pt-4">
+          {!isConfigured && (
+            <Alert variant="destructive" className="mb-4">
+              <AlertTriangle className="h-4 w-4" />
+              <AlertTitle>Configuration manquante</AlertTitle>
+              <AlertDescription>
+                Firebase n'est pas encore configuré. Veuillez vérifier vos variables d'environnement (NEXT_PUBLIC_FIREBASE_API_KEY, etc.).
+              </AlertDescription>
+            </Alert>
+          )}
+          
           <Button 
             className="w-full h-12 text-base font-medium transition-all hover:scale-[1.02]" 
             variant="outline"
             onClick={handleGoogleLogin}
-            disabled={loading}
+            disabled={loading || !isConfigured}
           >
             {loading ? (
               <Loader2 className="mr-2 h-5 w-5 animate-spin" />
