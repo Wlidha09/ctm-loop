@@ -7,3 +7,9 @@ export const firebaseConfig = {
   messagingSenderId: process.env.NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID || "",
   appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID || ""
 };
+
+/**
+ * Validates if the Firebase configuration is potentially valid.
+ * This helps prevent initialization errors when environment variables are missing.
+ */
+export const isFirebaseConfigValid = !!firebaseConfig.apiKey && !!firebaseConfig.projectId;
