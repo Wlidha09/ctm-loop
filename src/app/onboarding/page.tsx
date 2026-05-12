@@ -3,9 +3,8 @@
 
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
-import { auth, db } from "@/lib/firebase"
-import { onAuthStateChanged } from "firebase/auth"
-import { doc, getDoc, updateDoc, collection, setDoc } from "firebase/firestore"
+import { useAuth, useFirestore, useUser } from "@/firebase"
+import { doc, updateDoc, setDoc } from "firebase/firestore"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -16,8 +15,9 @@ import { toast } from "@/hooks/use-toast"
 import { UserRole } from "@/types/auth"
 
 export default function OnboardingPage() {
+  const { user, loading: authLoading } = useUser()
+  const db = useFirestore()
   const [loading, setLoading] = useState(false)
-  const [user, setUser] = useState<any>(null)
   const [formData, setFormData] = useState({
     companyName: "",
     department: "",
@@ -27,15 +27,10 @@ export default function OnboardingPage() {
   const router = useRouter()
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (u) => {
-      if (u) {
-        setUser(u)
-      } else {
-        router.push("/login")
-      }
-    })
-    return () => unsubscribe()
-  }, [router])
+    if (!authLoading && !user) {
+      router.push("/login")
+    }
+  }, [user, authLoading, router])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -78,7 +73,7 @@ export default function OnboardingPage() {
     }
   }
 
-  if (!user) return <div className="flex h-screen items-center justify-center"><Loader2 className="animate-spin" /></div>
+  if (authLoading || !user) return <div className="flex h-screen items-center justify-center"><Loader2 className="animate-spin" /></div>
 
   return (
     <div className="flex items-center justify-center min-h-screen bg-background px-4">

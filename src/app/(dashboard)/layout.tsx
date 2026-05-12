@@ -4,7 +4,7 @@
 import { useEffect, useState } from "react"
 import { AuthGuard } from "@/components/auth/auth-guard"
 import { Sidebar } from "@/components/navigation/sidebar"
-import { auth, db } from "@/lib/firebase"
+import { useAuth, useFirestore } from "@/firebase"
 import { doc, getDoc } from "firebase/firestore"
 import { UserProfile } from "@/types/auth"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
@@ -15,6 +15,8 @@ import { Button } from "@/components/ui/button"
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const [profile, setProfile] = useState<UserProfile | null>(null)
   const [isDark, setIsDark] = useState(false)
+  const auth = useAuth()
+  const db = useFirestore()
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -27,8 +29,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
     fetchProfile()
     
     // Check dark mode
-    if (document.documentElement.classList.contains('dark')) setIsDark(true)
-  }, [])
+    if (typeof document !== 'undefined' && document.documentElement.classList.contains('dark')) {
+      setIsDark(true)
+    }
+  }, [auth, db])
 
   const toggleDarkMode = () => {
     document.documentElement.classList.toggle('dark')

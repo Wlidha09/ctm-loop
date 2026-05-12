@@ -15,7 +15,7 @@ import {
   UserCircle
 } from "lucide-react"
 import { cn } from "@/lib/utils"
-import { auth } from "@/lib/firebase"
+import { useAuth } from "@/firebase"
 import { signOut } from "firebase/auth"
 import { Button } from "@/components/ui/button"
 import { UserRole } from "@/types/auth"
@@ -27,6 +27,7 @@ interface SidebarProps {
 export function Sidebar({ role }: SidebarProps) {
   const pathname = usePathname()
   const router = useRouter()
+  const auth = useAuth()
 
   const handleLogout = async () => {
     await signOut(auth)

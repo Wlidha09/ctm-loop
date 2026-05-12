@@ -3,7 +3,7 @@
 
 import { useEffect, useState } from "react"
 import { useRouter, usePathname } from "next/navigation"
-import { auth, db } from "@/lib/firebase"
+import { useAuth, useFirestore } from "@/firebase"
 import { onAuthStateChanged } from "firebase/auth"
 import { doc, getDoc } from "firebase/firestore"
 import { Loader2 } from "lucide-react"
@@ -13,6 +13,8 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
   const [profile, setProfile] = useState<any>(null)
   const router = useRouter()
   const pathname = usePathname()
+  const auth = useAuth()
+  const db = useFirestore()
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
@@ -33,13 +35,15 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
           router.push("/onboarding")
         }
       } else {
-        router.push("/onboarding")
+        if (pathname !== "/onboarding") {
+          router.push("/onboarding")
+        }
       }
       setLoading(false)
     })
 
     return () => unsubscribe()
-  }, [router, pathname])
+  }, [router, pathname, auth, db])
 
   if (loading) {
     return (

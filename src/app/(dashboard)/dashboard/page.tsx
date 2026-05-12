@@ -2,8 +2,8 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { auth, db } from "@/lib/firebase"
-import { doc, getDoc, collection, query, where, getDocs, limit } from "firebase/firestore"
+import { useAuth, useFirestore, useUser } from "@/firebase"
+import { doc, getDoc, collection, query, where, getDocs } from "firebase/firestore"
 import { UserProfile } from "@/types/auth"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -19,8 +19,11 @@ import {
 import { Skeleton } from "@/components/ui/skeleton"
 import { format } from "date-fns"
 import { fr } from "date-fns/locale"
+import { cn } from "@/lib/utils"
 
 export default function DashboardPage() {
+  const { user } = useUser()
+  const db = useFirestore()
   const [profile, setProfile] = useState<UserProfile | null>(null)
   const [loading, setLoading] = useState(true)
   const [stats, setStats] = useState({
@@ -31,33 +34,37 @@ export default function DashboardPage() {
 
   useEffect(() => {
     const fetchData = async () => {
-      const user = auth.currentUser
       if (!user) return
 
-      const profileSnap = await getDoc(doc(db, "profiles", user.uid))
-      if (profileSnap.exists()) {
-        const p = profileSnap.data() as UserProfile
-        setProfile(p)
+      try {
+        const profileSnap = await getDoc(doc(db, "profiles", user.uid))
+        if (profileSnap.exists()) {
+          const p = profileSnap.data() as UserProfile
+          setProfile(p)
 
-        // If HR/Owner, fetch aggregate stats (excluding 'Dev' role as per Shadow Dev Policy)
-        if (['Owner', 'RH', 'Manager'].includes(p.role)) {
-          const empQuery = query(
-            collection(db, "profiles"), 
-            where("companyId", "==", p.companyId),
-            where("role", "!=", "Dev")
-          )
-          const empSnap = await getDocs(empQuery)
-          setStats({
-            totalEmployees: empSnap.size,
-            activePresence: Math.floor(empSnap.size * 0.7), // Mocked for now
-            pendingLeave: 3
-          })
+          // If HR/Owner, fetch aggregate stats (excluding 'Dev' role as per Shadow Dev Policy)
+          if (['Owner', 'RH', 'Manager'].includes(p.role)) {
+            const empQuery = query(
+              collection(db, "profiles"), 
+              where("companyId", "==", p.companyId),
+              where("role", "!=", "Dev")
+            )
+            const empSnap = await getDocs(empQuery)
+            setStats({
+              totalEmployees: empSnap.size,
+              activePresence: Math.floor(empSnap.size * 0.7), // Mocked for now
+              pendingLeave: 3
+            })
+          }
         }
+      } catch (error) {
+        console.error("Error fetching dashboard data:", error)
+      } finally {
+        setLoading(false)
       }
-      setLoading(false)
     }
     fetchData()
-  }, [])
+  }, [user, db])
 
   if (loading) {
     return (
