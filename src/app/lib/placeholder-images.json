@@ -1,0 +1,17 @@
+
+{
+  "placeholderImages": [
+    {
+      "id": "avatar-1",
+      "description": "User Avatar Placeholder",
+      "imageUrl": "https://picsum.photos/seed/123/200/200",
+      "imageHint": "user avatar"
+    },
+    {
+      "id": "dashboard-hero",
+      "description": "Dashboard Hero Image",
+      "imageUrl": "https://picsum.photos/seed/ctm/1200/600",
+      "imageHint": "office workspace"
+    }
+  ]
+}

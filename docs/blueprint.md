@@ -1,0 +1,19 @@
+# **App Name**: CTM Hub
+
+## Core Features:
+
+- Secure Multi-Tenant Authentication & Authorization: Implement robust user authentication (including Google Auth with avatar capture) and authorization based on 5 distinct roles (Dev, Owner, HR, Manager, Employee). Enforce multi-tenancy by filtering all data access via a companyId, and apply a 'Shadow Dev' policy to make 'Dev' roles invisible to other users for reporting and directories.
+- Dynamic Onboarding Flow: Ensure a seamless onboarding experience by automatically redirecting new or incomplete user profiles (e.g., missing Department or Role) to a dedicated '/onboarding' page to gather essential information.
+- Employee Profile Management: Manage comprehensive employee profiles within Firestore, securely associated with a companyId, including crucial details like 'officeDaysPerWeek' and other HR-specific data.
+- Presence Planning Module: Enable employees to manage their weekly office attendance. The interface will display a 5-day selection (Lundi-Vendredi) for the current week, automatically rotating to the next week every Monday morning to facilitate proactive planning based on their 'officeDaysPerWeek' setting.
+- Tunisian Payroll Engine: Develop the core logic for Tunisian payroll calculations, including gross-to-net salary conversion, automatic CNSS deductions (9.18%), IRPP calculation based on the official annual Tunisian scale, and accurate inclusion of transport and presence bonuses.
+- Role-Based Dynamic Dashboard: Present a personalized '/dashboard' that intelligently displays widgets based on the logged-in user's role. Admin/HR users will see staff statistics and pending leave requests, while employees will view their leave balance, meal ticket details, and presence planning.
+- Localisation and Dual-Mode Theming: Provide a fully localized user interface in French (fr-TN) and implement a modern 'Dual-Mode' (light/dark) design system. The dark mode will utilize rich dark greys complemented by striking Emerald Green accents (#10b981).
+
+## Style Guidelines:
+
+- Our palette for CTM Hub conveys professionalism, trust, and a modern aesthetic, designed for clarity across a dual-mode interface. The primary color, a deep Teal Blue (#1EB2CD), grounds the light theme, offering clear contrast against subtle backgrounds. The background for the light theme is a very light Teal Gray (#EFF4F5), ensuring visual consistency without distraction. Emerald Green (#10B981) serves as a vibrant accent color, aligning with the user's request for dark mode, while providing clear emphasis for interactive elements and highlights in both themes.
+- For universal readability and a clean, professional aesthetic, we recommend 'Inter', a contemporary sans-serif typeface, for both headlines and body text. Its neutral, optimized design ensures legibility across all content types and screen sizes within the CTM Hub platform.
+- To maintain a sleek and intuitive user experience, we suggest a consistent set of clean, line-based icons. These icons should be easily recognizable, contextual to HR and payroll functions, and scalable to support varying display needs across the application.
+- The application will feature a prominent, user-friendly sidebar for navigation, ensuring quick access to all modules. Dashboards are designed with a responsive, widget-based structure, allowing dynamic content display tailored to user roles and device sizes. A clear and structured layout prioritizes content legibility and ease of interaction.
+- Subtle, non-intrusive animations will be integrated to enhance user feedback and improve the perceived responsiveness of the interface. This includes gentle transitions for navigation, state changes for form elements, and discreet loaders, all contributing to a polished and fluid user experience without distracting from core tasks.
