@@ -30,6 +30,7 @@ export function Sidebar({ role }: SidebarProps) {
   const auth = useAuth()
 
   const handleLogout = async () => {
+    if (!auth) return
     await signOut(auth)
     router.push("/login")
   }
@@ -56,7 +57,7 @@ export function Sidebar({ role }: SidebarProps) {
           <div className="bg-primary p-1 rounded-md">
             <ShieldCheck className="h-6 w-6 text-primary-foreground" />
           </div>
-          <span className="font-headline font-bold text-xl tracking-tight">CTM Hub</span>
+          <span className="font-headline font-bold text-xl tracking-tight">CTM Loop</span>
         </Link>
       </div>
       <div className="flex-1 overflow-y-auto py-6 px-4">

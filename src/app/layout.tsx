@@ -5,7 +5,7 @@ import { Toaster } from "@/components/ui/toaster"
 import { FirebaseClientProvider } from '@/firebase';
 
 export const metadata: Metadata = {
-  title: 'CTM Hub - SaaS RH & Paie',
+  title: 'CTM Loop - SaaS RH & Paie',
   description: 'Solution complète de gestion RH et paie pour les entreprises modernes.',
 };
 

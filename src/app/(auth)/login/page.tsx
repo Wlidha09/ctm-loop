@@ -1,3 +1,4 @@
+
 "use client"
 
 import { useState } from "react"
@@ -76,7 +77,7 @@ export default function LoginPage() {
           </div>
           <CardTitle className="text-3xl font-headline font-bold tracking-tight">Bienvenue</CardTitle>
           <CardDescription>
-            Connectez-vous à votre espace CTM Hub pour accéder à vos outils RH.
+            Connectez-vous à votre espace CTM Loop pour accéder à vos outils RH.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4 pt-4">

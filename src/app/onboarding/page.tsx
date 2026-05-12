@@ -34,7 +34,7 @@ export default function OnboardingPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (!user) return
+    if (!user || !db) return
     
     setLoading(true)
     try {
@@ -59,7 +59,7 @@ export default function OnboardingPage() {
 
       toast({
         title: "Profil configuré !",
-        description: "Bienvenue sur CTM Hub.",
+        description: "Bienvenue sur CTM Loop.",
       })
       router.push("/dashboard")
     } catch (error: any) {

@@ -11,7 +11,7 @@ export default function Home() {
           <div className="bg-primary p-1.5 rounded-lg">
             <ShieldCheck className="h-6 w-6 text-primary-foreground" />
           </div>
-          <span className="font-headline font-bold text-xl tracking-tight">CTM Hub</span>
+          <span className="font-headline font-bold text-xl tracking-tight">CTM Loop</span>
         </Link>
         <nav className="ml-auto flex gap-4 sm:gap-6">
           <Link className="text-sm font-medium hover:text-primary transition-colors" href="/login">
@@ -28,7 +28,7 @@ export default function Home() {
                   La Gestion RH & Paie <span className="text-primary">Réinventée</span>
                 </h1>
                 <p className="mx-auto max-w-[700px] text-muted-foreground md:text-xl">
-                  Centralisez vos processus RH, automatisez votre paie tunisienne et gérez les présences avec CTM Hub.
+                  Centralisez vos processus RH, automatisez votre paie tunisienne et gérez les présences avec CTM Loop.
                 </p>
               </div>
               <div className="space-x-4">
@@ -72,7 +72,7 @@ export default function Home() {
         </section>
       </main>
       <footer className="flex flex-col gap-2 sm:flex-row py-6 w-full shrink-0 items-center px-4 md:px-6 border-t">
-        <p className="text-xs text-muted-foreground">© 2024 CTM Hub. Tous droits réservés. Fabriqué en Tunisie.</p>
+        <p className="text-xs text-muted-foreground">© 2024 CTM Loop. Tous droits réservés. Fabriqué en Tunisie.</p>
       </footer>
     </div>
   );

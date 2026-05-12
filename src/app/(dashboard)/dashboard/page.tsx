@@ -34,7 +34,7 @@ export default function DashboardPage() {
 
   useEffect(() => {
     const fetchData = async () => {
-      if (!user) return
+      if (!user || !db) return
 
       try {
         const profileSnap = await getDoc(doc(db, "profiles", user.uid))
@@ -80,7 +80,7 @@ export default function DashboardPage() {
     <div className="space-y-8">
       <div>
         <h1 className="text-3xl font-headline font-bold">Bonjour, {profile?.firstName}</h1>
-        <p className="text-muted-foreground">Voici l'aperçu de votre espace CTM Hub pour aujourd'hui.</p>
+        <p className="text-muted-foreground">Voici l'aperçu de votre espace CTM Loop pour aujourd'hui.</p>
       </div>
 
       {/* Hero Stats */}
