@@ -1,43 +1,75 @@
-
 "use client"
 
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
-import { signInWithRedirect, getRedirectResult } from "firebase/auth"
+import { signInWithRedirect, getRedirectResult, onAuthStateChanged } from "firebase/auth"
 import { doc, getDoc, setDoc, serverTimestamp } from "firebase/firestore"
 import { useAuth, useFirestore, useGoogleProvider } from "@/firebase"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
-import { ShieldCheck, Loader2, AlertTriangle } from "lucide-react"
 import { toast } from "@/hooks/use-toast"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 
+// Simple Inline Icons to replace lucide-react in problematic areas
+const IconShield = ({ className }: { className?: string }) => (
+  <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+  </svg>
+)
+
+const IconAlert = ({ className }: { className?: string }) => (
+  <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <circle cx="12" cy="12" r="10" />
+    <line x1="12" y1="8" x2="12" y2="12" />
+    <line x1="12" y1="16" x2="12.01" y2="16" />
+  </svg>
+)
+
+const IconLoader = ({ className }: { className?: string }) => (
+  <svg className={`${className} animate-spin`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <line x1="12" y1="2" x2="12" y2="6" />
+    <line x1="12" y1="18" x2="12" y2="22" />
+    <line x1="4.93" y1="4.93" x2="7.76" y2="7.76" />
+    <line x1="16.24" y1="16.24" x2="19.07" y2="19.07" />
+    <line x1="2" y1="12" x2="6" y2="12" />
+    <line x1="18" y1="12" x2="22" y2="12" />
+    <line x1="4.93" y1="19.07" x2="7.76" y2="16.24" />
+    <line x1="16.24" y1="7.76" x2="19.07" y2="4.93" />
+  </svg>
+)
+
 export default function LoginPage() {
-  const [loading, setLoading] = useState(false)
+  const [loading, setLoading] = useState(true)
   const [mounted, setMounted] = useState(false)
   const router = useRouter()
   const auth = useAuth()
   const db = useFirestore()
   const googleProvider = useGoogleProvider()
 
-  // Prevent hydration mismatch
   useEffect(() => {
     setMounted(true)
   }, [])
 
-  // Handle redirect result on mount
   useEffect(() => {
     if (!auth || !db || !mounted) return
 
-    const handleRedirect = async () => {
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      if (user) {
+        router.push("/dashboard")
+      } else {
+        setLoading(false)
+      }
+    })
+
+    const handleRedirectResult = async () => {
       try {
         const result = await getRedirectResult(auth)
         if (result) {
           setLoading(true)
           const user = result.user
           const profileRef = doc(db, "profiles", user.uid)
-          
           const profileSnap = await getDoc(profileRef)
+          
           if (!profileSnap.exists()) {
             await setDoc(profileRef, {
               uid: user.uid,
@@ -65,21 +97,18 @@ export default function LoginPage() {
           description: error.message || "Impossible de finaliser la connexion.",
           variant: "destructive"
         })
-      } finally {
         setLoading(false)
       }
     }
 
-    handleRedirect()
+    handleRedirectResult()
+    return () => unsubscribe()
   }, [auth, db, mounted, router])
-
-  const isConfigured = !!auth && !!db && !!googleProvider
 
   const handleGoogleLogin = async () => {
     if (!auth || !googleProvider) return
     setLoading(true)
     try {
-      // Use redirect instead of popup to avoid COOP/popup blocker issues
       await signInWithRedirect(auth, googleProvider)
     } catch (error: any) {
       console.error("Auth Error:", error)
@@ -94,13 +123,15 @@ export default function LoginPage() {
 
   if (!mounted) return null
 
+  const isConfigured = !!auth && !!db && !!googleProvider
+
   return (
     <div className="flex items-center justify-center min-h-screen bg-background px-4">
       <Card className="w-full max-w-md shadow-2xl border-primary/20">
         <CardHeader className="text-center space-y-1">
           <div className="flex justify-center mb-4">
             <div className="bg-primary p-3 rounded-2xl shadow-lg shadow-primary/20">
-              <ShieldCheck className="h-10 w-10 text-primary-foreground" />
+              <IconShield className="h-10 w-10 text-primary-foreground" />
             </div>
           </div>
           <CardTitle className="text-3xl font-bold tracking-tight">CTM Loop</CardTitle>
@@ -111,10 +142,10 @@ export default function LoginPage() {
         <CardContent className="space-y-4 pt-4">
           {!isConfigured && (
             <Alert variant="destructive" className="mb-4">
-              <AlertTriangle className="h-4 w-4" />
+              <IconAlert className="h-4 w-4" />
               <AlertTitle>Configuration manquante</AlertTitle>
               <AlertDescription>
-                Firebase n'est pas encore configuré ou les variables d'environnement sont absentes.
+                Firebase n'est pas encore initialisé. Vérifiez vos variables d'environnement.
               </AlertDescription>
             </Alert>
           )}
@@ -126,7 +157,7 @@ export default function LoginPage() {
             disabled={loading || !isConfigured}
           >
             {loading ? (
-              <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+              <IconLoader className="mr-2 h-5 w-5" />
             ) : (
               <svg className="mr-2 h-5 w-5" viewBox="0 0 24 24">
                 <path

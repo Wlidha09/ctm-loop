@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useEffect, useState } from "react"
@@ -7,21 +6,49 @@ import { doc, getDoc, collection, query, where, getDocs } from "firebase/firesto
 import { UserProfile } from "@/types/auth"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { 
-  Users, 
-  Calendar, 
-  Wallet, 
-  ArrowUpRight, 
-  Clock,
-  Briefcase,
-  AlertCircle,
-  EyeOff,
-  WifiOff
-} from "lucide-react"
 import { Skeleton } from "@/components/ui/skeleton"
 import { format } from "date-fns"
 import { fr } from "date-fns/locale"
 import { cn } from "@/lib/utils"
+
+const IconUsers = ({ className }: { className?: string }) => (
+  <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+    <circle cx="9" cy="7" r="4" />
+    <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+  </svg>
+)
+
+const IconClock = ({ className }: { className?: string }) => (
+  <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <circle cx="12" cy="12" r="10" />
+    <polyline points="12 6 12 12 16 14" />
+  </svg>
+)
+
+const IconCalendar = ({ className }: { className?: string }) => (
+  <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
+    <line x1="16" y1="2" x2="16" y2="6" />
+    <line x1="8" y1="2" x2="8" y2="6" />
+    <line x1="3" y1="10" x2="21" y2="10" />
+  </svg>
+)
+
+const IconWallet = ({ className }: { className?: string }) => (
+  <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M20 12V8H6a2 2 0 0 1-2-2c0-1.1.9-2 2-2h12v4" />
+    <path d="M4 6v12c0 1.1.9 2 2 2h14v-4" />
+    <path d="M18 12a2 2 0 0 0-2 2c0 1.1.9 2 2 2h4v-4h-4z" />
+  </svg>
+)
+
+const IconArrowUpRight = ({ className }: { className?: string }) => (
+  <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <line x1="7" y1="17" x2="17" y2="7" />
+    <polyline points="7 7 17 7 17 17" />
+  </svg>
+)
 
 export default function DashboardPage() {
   const { user } = useUser()
@@ -92,7 +119,7 @@ export default function DashboardPage() {
     <div className="space-y-8 animate-in fade-in duration-500">
       {offline && (
         <div className="bg-amber-500/10 border border-amber-500/20 text-amber-600 p-4 rounded-xl flex items-center gap-3">
-          <WifiOff className="h-5 w-5" />
+          <IconClock className="h-5 w-5" />
           <p className="text-sm font-medium">Vous êtes hors ligne. Les données affichées peuvent ne pas être à jour.</p>
         </div>
       )}
@@ -104,13 +131,11 @@ export default function DashboardPage() {
         </div>
         {profile?.role === 'Dev' && (
           <div className="flex items-center gap-2 bg-amber-500/10 text-amber-600 px-4 py-2 rounded-full border border-amber-500/20 text-sm font-medium">
-            <EyeOff className="h-4 w-4" />
             Mode Développeur (Profil Invisible)
           </div>
         )}
       </div>
 
-      {/* Hero Stats */}
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
         {isAdmin && (
           <>
@@ -121,7 +146,7 @@ export default function DashboardPage() {
                     <p className="text-sm font-medium text-muted-foreground uppercase tracking-wider">Effectif Réel</p>
                     <p className="text-3xl font-bold mt-2">{stats.totalEmployees}</p>
                   </div>
-                  <div className="p-3 bg-primary/10 rounded-xl shadow-inner"><Users className="h-6 w-6 text-primary" /></div>
+                  <div className="p-3 bg-primary/10 rounded-xl shadow-inner"><IconUsers className="h-6 w-6 text-primary" /></div>
                 </div>
               </CardContent>
             </Card>
@@ -132,7 +157,7 @@ export default function DashboardPage() {
                     <p className="text-sm font-medium text-muted-foreground uppercase tracking-wider">Au bureau</p>
                     <p className="text-3xl font-bold mt-2">{stats.activePresence}</p>
                   </div>
-                  <div className="p-3 bg-accent/10 rounded-xl shadow-inner"><Clock className="h-6 w-6 text-accent" /></div>
+                  <div className="p-3 bg-accent/10 rounded-xl shadow-inner"><IconClock className="h-6 w-6 text-accent" /></div>
                 </div>
               </CardContent>
             </Card>
@@ -145,7 +170,7 @@ export default function DashboardPage() {
                 <p className="text-sm font-medium text-muted-foreground uppercase tracking-wider">Solde Congés</p>
                 <p className="text-3xl font-bold mt-2">14.5j</p>
               </div>
-              <div className="p-3 bg-primary/10 rounded-xl shadow-inner"><Calendar className="h-6 w-6 text-primary" /></div>
+              <div className="p-3 bg-primary/10 rounded-xl shadow-inner"><IconCalendar className="h-6 w-6 text-primary" /></div>
             </div>
           </CardContent>
         </Card>
@@ -156,14 +181,13 @@ export default function DashboardPage() {
                 <p className="text-sm font-medium text-muted-foreground uppercase tracking-wider">Tickets Resto</p>
                 <p className="text-3xl font-bold mt-2">22</p>
               </div>
-              <div className="p-3 bg-accent/10 rounded-xl shadow-inner"><Wallet className="h-6 w-6 text-accent" /></div>
+              <div className="p-3 bg-accent/10 rounded-xl shadow-inner"><IconWallet className="h-6 w-6 text-accent" /></div>
             </div>
           </CardContent>
         </Card>
       </div>
 
       <div className="grid gap-8 md:grid-cols-2 lg:grid-cols-3">
-        {/* Presence Widget */}
         <Card className="lg:col-span-2 shadow-sm border-none bg-card/50 backdrop-blur-sm">
           <CardHeader className="flex flex-row items-center justify-between pb-4">
             <div className="space-y-1">
@@ -172,7 +196,7 @@ export default function DashboardPage() {
             </div>
             <Button variant="outline" size="sm" className="rounded-full px-4" disabled={offline}>
               Modifier
-              <ArrowUpRight className="ml-2 h-4 w-4" />
+              <IconArrowUpRight className="ml-2 h-4 w-4" />
             </Button>
           </CardHeader>
           <CardContent>
@@ -191,40 +215,6 @@ export default function DashboardPage() {
                   </div>
                 ))}
              </div>
-             <div className="mt-6 p-4 rounded-xl bg-secondary/30 flex items-start gap-3 border border-secondary">
-               <AlertCircle className="h-5 w-5 text-primary mt-0.5" />
-               <div className="text-sm text-muted-foreground">
-                 <p className="font-semibold text-foreground">Rappel Automatique</p>
-                 <p>Votre planning de présence se réinitialise chaque lundi. Assurez-vous que vos jours au bureau (actuellement <strong>{profile?.officeDaysPerWeek} jours</strong>) respectent la politique de l'entreprise.</p>
-               </div>
-             </div>
-          </CardContent>
-        </Card>
-
-        {/* Info / Quick Links */}
-        <Card className="shadow-sm border-none bg-card/50 backdrop-blur-sm">
-          <CardHeader>
-            <CardTitle className="text-2xl font-bold">Ma Carrière</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-6">
-            <div className="flex items-center p-4 rounded-2xl border bg-background/50 hover:bg-background transition-colors">
-              <div className="h-12 w-12 rounded-xl bg-primary/10 flex items-center justify-center mr-4">
-                <Briefcase className="h-6 w-6 text-primary" />
-              </div>
-              <div className="flex-1">
-                <p className="text-sm font-bold text-foreground">{profile?.department}</p>
-                <p className="text-xs text-muted-foreground font-medium uppercase tracking-tight">Département</p>
-              </div>
-            </div>
-            <div className="pt-4 border-t border-dashed">
-              <p className="text-xs font-bold text-muted-foreground mb-4 uppercase tracking-widest">Liens Rapides</p>
-              <div className="grid grid-cols-2 gap-3">
-                <Button variant="outline" className="text-xs h-10 border-muted rounded-xl" disabled={offline}>Fiches de Paie</Button>
-                <Button variant="outline" className="text-xs h-10 border-muted rounded-xl" disabled={offline}>Contrats</Button>
-                <Button variant="outline" className="text-xs h-10 border-muted rounded-xl" disabled={offline}>Formations</Button>
-                <Button variant="outline" className="text-xs h-10 border-muted rounded-xl" disabled={offline}>Entretiens</Button>
-              </div>
-            </div>
           </CardContent>
         </Card>
       </div>
