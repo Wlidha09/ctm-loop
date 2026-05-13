@@ -8,7 +8,7 @@ import { doc, getDoc, setDoc, serverTimestamp } from "firebase/firestore"
 import { useAuth, useFirestore } from "@/firebase"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
-import { ShieldCheck, LogIn, Loader2, AlertTriangle } from "lucide-react"
+import { ShieldCheck, Loader2, AlertTriangle } from "lucide-react"
 import { toast } from "@/hooks/use-toast"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 
@@ -42,7 +42,7 @@ export default function LoginPage() {
           lastName: user.displayName?.split(' ').slice(1).join(' ') || '',
           photoURL: user.photoURL,
           onboarded: false,
-          role: 'Employé', // Default
+          role: 'Employee', // Default
           createdAt: serverTimestamp(),
         }, { merge: true })
         router.push("/onboarding")
@@ -86,7 +86,7 @@ export default function LoginPage() {
               <AlertTriangle className="h-4 w-4" />
               <AlertTitle>Configuration manquante</AlertTitle>
               <AlertDescription>
-                Firebase n'est pas encore configuré. Veuillez vérifier vos variables d'environnement (NEXT_PUBLIC_FIREBASE_API_KEY, etc.).
+                Firebase n'est pas encore configuré. Veuillez vérifier vos variables d'environnement.
               </AlertDescription>
             </Alert>
           )}
@@ -124,7 +124,7 @@ export default function LoginPage() {
         </CardContent>
         <CardFooter className="flex flex-col space-y-4 pb-8">
           <p className="text-xs text-center text-muted-foreground px-4">
-            En continuant, vous acceptez nos conditions d'utilisation et notre politique de confidentialité.
+            En continuant, vous acceptez nos conditions d'utilisation.
           </p>
         </CardFooter>
       </Card>

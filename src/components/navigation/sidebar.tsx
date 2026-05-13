@@ -7,7 +7,6 @@ import {
   LayoutDashboard, 
   Users, 
   CalendarCheck, 
-  FileText, 
   Settings, 
   LogOut,
   ShieldCheck,
@@ -51,33 +50,34 @@ export function Sidebar({ role }: SidebarProps) {
   }
 
   return (
-    <div className="flex h-full w-64 flex-col bg-card border-r">
+    <div className="flex h-full w-64 flex-col bg-card border-r shadow-2xl z-20">
       <div className="flex h-16 items-center px-6 border-b">
-        <Link href="/dashboard" className="flex items-center gap-2">
-          <div className="bg-primary p-1 rounded-md">
+        <Link href="/dashboard" className="flex items-center gap-3">
+          <div className="bg-primary p-2 rounded-xl shadow-lg shadow-primary/20">
             <ShieldCheck className="h-6 w-6 text-primary-foreground" />
           </div>
-          <span className="font-headline font-bold text-xl tracking-tight">CTM Loop</span>
+          <span className="font-headline font-bold text-xl tracking-tight text-foreground">CTM Loop</span>
         </Link>
       </div>
-      <div className="flex-1 overflow-y-auto py-6 px-4">
-        <nav className="space-y-1">
+      <div className="flex-1 overflow-y-auto py-8 px-4">
+        <nav className="space-y-2">
           {navItems.map((item) => {
             const Icon = item.icon
+            const isActive = pathname === item.href
             return (
               <Link
                 key={item.href}
                 href={item.href}
                 className={cn(
-                  "group flex items-center px-3 py-2 text-sm font-medium rounded-md transition-all duration-200",
-                  pathname === item.href
-                    ? "bg-primary text-primary-foreground shadow-sm"
-                    : "text-muted-foreground hover:bg-secondary hover:text-foreground"
+                  "group flex items-center px-4 py-3 text-sm font-semibold rounded-xl transition-all duration-300",
+                  isActive
+                    ? "bg-primary text-primary-foreground shadow-lg shadow-primary/25"
+                    : "text-muted-foreground hover:bg-secondary/50 hover:text-foreground"
                 )}
               >
                 <Icon className={cn(
-                  "mr-3 h-5 w-5",
-                  pathname === item.href ? "text-primary-foreground" : "text-muted-foreground group-hover:text-foreground"
+                  "mr-3 h-5 w-5 transition-transform duration-300 group-hover:scale-110",
+                  isActive ? "text-primary-foreground" : "text-muted-foreground group-hover:text-primary"
                 )} />
                 {item.name}
               </Link>
@@ -85,10 +85,14 @@ export function Sidebar({ role }: SidebarProps) {
           })}
         </nav>
       </div>
-      <div className="p-4 border-t space-y-2">
+      <div className="p-6 border-t border-muted bg-muted/20 space-y-4">
+        <Button variant="ghost" className="w-full justify-start text-muted-foreground hover:text-primary group rounded-xl">
+          <Settings className="mr-3 h-5 w-5 group-hover:rotate-45 transition-transform duration-500" />
+          Paramètres
+        </Button>
         <Button 
           variant="ghost" 
-          className="w-full justify-start text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+          className="w-full justify-start text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-xl"
           onClick={handleLogout}
         >
           <LogOut className="mr-3 h-5 w-5" />
