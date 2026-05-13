@@ -28,6 +28,7 @@ export default function DashboardPage() {
   const db = useFirestore()
   const [profile, setProfile] = useState<UserProfile | null>(null)
   const [loading, setLoading] = useState(true)
+  const [mounted, setMounted] = useState(false)
   const [offline, setOffline] = useState(false)
   const [stats, setStats] = useState({
     totalEmployees: 0,
@@ -36,8 +37,12 @@ export default function DashboardPage() {
   })
 
   useEffect(() => {
+    setMounted(true)
+  }, [])
+
+  useEffect(() => {
     const fetchData = async () => {
-      if (!user || !db) return
+      if (!mounted || !user || !db) return
 
       try {
         const profileSnap = await getDoc(doc(db, "profiles", user.uid))
@@ -45,7 +50,7 @@ export default function DashboardPage() {
           const p = profileSnap.data() as UserProfile
           setProfile(p)
 
-          // Fetch aggregate stats
+          // Fetch aggregate stats - Filtering Dev role for invisibility rule
           const empQuery = query(
             collection(db, "profiles"), 
             where("role", "!=", "Dev")
@@ -69,7 +74,9 @@ export default function DashboardPage() {
       }
     }
     fetchData()
-  }, [user, db])
+  }, [user, db, mounted])
+
+  if (!mounted) return null
 
   if (loading) {
     return (

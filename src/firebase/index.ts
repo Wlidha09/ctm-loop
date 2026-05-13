@@ -16,6 +16,11 @@ export function initializeFirebase(): {
   auth: Auth | null;
   googleProvider: GoogleAuthProvider | null;
 } {
+  // Debug Log for Vercel environment verification
+  if (typeof window !== 'undefined') {
+    console.log("Firebase Config Project ID:", process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID);
+  }
+
   if (typeof window === 'undefined' || !isFirebaseConfigValid) {
     return { firebaseApp: null, firestore: null, auth: null, googleProvider: null };
   }
@@ -24,17 +29,18 @@ export function initializeFirebase(): {
   
   let firestore: Firestore;
   try {
-    // Enable persistent local cache for better offline support
+    // Enable persistent local cache for robust offline support (modern replacement for enableIndexedDbPersistence)
     firestore = initializeFirestore(firebaseApp, {
       localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() })
     });
   } catch (e) {
-    // If already initialized (e.g. during HMR), use existing instance
     firestore = getFirestore(firebaseApp);
   }
 
   const auth = getAuth(firebaseApp);
   const googleProvider = new GoogleAuthProvider();
+  // Set custom parameters to help with COOP/COEP issues if needed
+  googleProvider.setCustomParameters({ prompt: 'select_account' });
 
   return { firebaseApp, firestore, auth, googleProvider };
 }

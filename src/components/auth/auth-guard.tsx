@@ -11,15 +11,20 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 
 export function AuthGuard({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true)
-  const [profile, setProfile] = useState<any>(null)
+  const [mounted, setMounted] = useState(false)
   const router = useRouter()
   const pathname = usePathname()
   const auth = useAuth()
   const db = useFirestore()
 
+  // Prevent hydration mismatch
   useEffect(() => {
-    if (!auth || !db) {
-      setLoading(false)
+    setMounted(true)
+  }, [])
+
+  useEffect(() => {
+    if (!auth || !db || !mounted) {
+      if (mounted) setLoading(false)
       return
     }
 
@@ -36,8 +41,6 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
         const profileSnap = await getDoc(doc(db, "profiles", user.uid))
         if (profileSnap.exists()) {
           const data = profileSnap.data()
-          setProfile(data)
-          
           if (!data.onboarded && pathname !== "/onboarding") {
             router.push("/onboarding")
           }
@@ -48,15 +51,15 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
         }
       } catch (error) {
         console.warn("AuthGuard: Profile fetch failed, potentially offline.", error)
-        // If we can't reach the server and don't have a cache, 
-        // we stay on the current page if it's already an auth-protected area
       } finally {
         setLoading(false)
       }
     })
 
     return () => unsubscribe()
-  }, [router, pathname, auth, db])
+  }, [router, pathname, auth, db, mounted])
+
+  if (!mounted) return null
 
   if (!auth || !db) {
     return (

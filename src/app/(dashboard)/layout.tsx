@@ -15,29 +15,44 @@ import { Button } from "@/components/ui/button"
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const [profile, setProfile] = useState<UserProfile | null>(null)
   const [isDark, setIsDark] = useState(false)
+  const [mounted, setMounted] = useState(false)
   const auth = useAuth()
   const db = useFirestore()
 
   useEffect(() => {
-    const fetchProfile = async () => {
-      const user = auth.currentUser
-      if (user) {
-        const snap = await getDoc(doc(db, "profiles", user.uid))
-        if (snap.exists()) setProfile(snap.data() as UserProfile)
-      }
-    }
-    fetchProfile()
+    setMounted(true)
     
     // Check dark mode
     if (typeof document !== 'undefined' && document.documentElement.classList.contains('dark')) {
       setIsDark(true)
     }
-  }, [auth, db])
+  }, [])
+
+  useEffect(() => {
+    if (!mounted || !auth || !db) return
+
+    const fetchProfile = async () => {
+      const user = auth.currentUser
+      if (user) {
+        try {
+          const snap = await getDoc(doc(db, "profiles", user.uid))
+          if (snap.exists()) setProfile(snap.data() as UserProfile)
+        } catch (e) {
+          console.error("DashboardLayout: Error fetching profile", e)
+        }
+      }
+    }
+    fetchProfile()
+  }, [auth, db, mounted])
 
   const toggleDarkMode = () => {
-    document.documentElement.classList.toggle('dark')
-    setIsDark(!isDark)
+    if (typeof document !== 'undefined') {
+      document.documentElement.classList.toggle('dark')
+      setIsDark(!isDark)
+    }
   }
+
+  if (!mounted) return null
 
   return (
     <AuthGuard>

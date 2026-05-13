@@ -1,80 +1,98 @@
 
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
-import { signInWithPopup } from "firebase/auth"
+import { signInWithRedirect, getRedirectResult } from "firebase/auth"
 import { doc, getDoc, setDoc, serverTimestamp } from "firebase/firestore"
 import { useAuth, useFirestore, useGoogleProvider } from "@/firebase"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
-import { ShieldCheck, Loader2, AlertTriangle, WifiOff } from "lucide-react"
+import { ShieldCheck, Loader2, AlertTriangle } from "lucide-react"
 import { toast } from "@/hooks/use-toast"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 
 export default function LoginPage() {
   const [loading, setLoading] = useState(false)
+  const [mounted, setMounted] = useState(false)
   const router = useRouter()
   const auth = useAuth()
   const db = useFirestore()
   const googleProvider = useGoogleProvider()
 
+  // Prevent hydration mismatch
+  useEffect(() => {
+    setMounted(true)
+  }, [])
+
+  // Handle redirect result on mount
+  useEffect(() => {
+    if (!auth || !db || !mounted) return
+
+    const handleRedirect = async () => {
+      try {
+        const result = await getRedirectResult(auth)
+        if (result) {
+          setLoading(true)
+          const user = result.user
+          const profileRef = doc(db, "profiles", user.uid)
+          
+          const profileSnap = await getDoc(profileRef)
+          if (!profileSnap.exists()) {
+            await setDoc(profileRef, {
+              uid: user.uid,
+              email: user.email,
+              firstName: user.displayName?.split(' ')[0] || '',
+              lastName: user.displayName?.split(' ').slice(1).join(' ') || '',
+              displayName: user.displayName,
+              photoURL: user.photoURL,
+              onboarded: false,
+              role: 'Employee',
+              createdAt: serverTimestamp(),
+            }, { merge: true })
+          }
+
+          toast({
+            title: "Connexion réussie",
+            description: `Bienvenue, ${user.displayName || 'utilisateur'}.`,
+          })
+          router.push("/dashboard")
+        }
+      } catch (error: any) {
+        console.error("Redirect Result Error:", error)
+        toast({
+          title: "Erreur de connexion",
+          description: error.message || "Impossible de finaliser la connexion.",
+          variant: "destructive"
+        })
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    handleRedirect()
+  }, [auth, db, mounted, router])
+
   const isConfigured = !!auth && !!db && !!googleProvider
 
   const handleGoogleLogin = async () => {
-    if (!auth || !db || !googleProvider) return
-
+    if (!auth || !googleProvider) return
     setLoading(true)
     try {
-      const result = await signInWithPopup(auth, googleProvider)
-      const user = result.user
-
-      // Check if user profile exists
-      const profileRef = doc(db, "profiles", user.uid)
-      
-      try {
-        const profileSnap = await getDoc(profileRef)
-        if (!profileSnap.exists()) {
-          // Create initial profile for new user
-          await setDoc(profileRef, {
-            uid: user.uid,
-            email: user.email,
-            firstName: user.displayName?.split(' ')[0] || '',
-            lastName: user.displayName?.split(' ').slice(1).join(' ') || '',
-            displayName: user.displayName,
-            photoURL: user.photoURL,
-            onboarded: false,
-            role: 'Employee',
-            createdAt: serverTimestamp(),
-          }, { merge: true })
-        }
-      } catch (firestoreError: any) {
-        console.warn("Login: Profile fetch/sync failed. If offline, this is expected.", firestoreError)
-        // We continue even if firestore fails, as Auth succeeded. 
-        // Persistence will handle it when back online.
-      }
-
-      toast({
-        title: "Connexion réussie",
-        description: `Ravi de vous revoir, ${user.displayName || 'utilisateur'}.`,
-      })
-      
-      router.push("/dashboard")
+      // Use redirect instead of popup to avoid COOP/popup blocker issues
+      await signInWithRedirect(auth, googleProvider)
     } catch (error: any) {
       console.error("Auth Error:", error)
-      const isOfflineError = error.message?.includes('offline') || error.code === 'unavailable'
-      
+      setLoading(false)
       toast({
-        title: isOfflineError ? "Mode hors ligne" : "Erreur d'authentification",
-        description: isOfflineError 
-          ? "La connexion Google nécessite internet. Veuillez vérifier votre connexion."
-          : error.message || "Impossible de se connecter.",
+        title: "Erreur d'authentification",
+        description: error.message || "Impossible de lancer la connexion.",
         variant: "destructive"
       })
-    } finally {
-      setLoading(false)
     }
   }
+
+  if (!mounted) return null
 
   return (
     <div className="flex items-center justify-center min-h-screen bg-background px-4">
@@ -96,7 +114,7 @@ export default function LoginPage() {
               <AlertTriangle className="h-4 w-4" />
               <AlertTitle>Configuration manquante</AlertTitle>
               <AlertDescription>
-                Firebase n'est pas encore configuré.
+                Firebase n'est pas encore configuré ou les variables d'environnement sont absentes.
               </AlertDescription>
             </Alert>
           )}
