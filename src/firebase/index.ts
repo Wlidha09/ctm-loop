@@ -1,6 +1,12 @@
 
 import { initializeApp, getApps, getApp, FirebaseApp } from 'firebase/app';
-import { getFirestore, Firestore } from 'firebase/firestore';
+import { 
+  getFirestore, 
+  Firestore, 
+  initializeFirestore, 
+  persistentLocalCache, 
+  persistentMultipleTabManager 
+} from 'firebase/firestore';
 import { getAuth, Auth, GoogleAuthProvider } from 'firebase/auth';
 import { firebaseConfig, isFirebaseConfigValid } from './config';
 
@@ -15,7 +21,18 @@ export function initializeFirebase(): {
   }
 
   const firebaseApp = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
-  const firestore = getFirestore(firebaseApp);
+  
+  let firestore: Firestore;
+  try {
+    // Enable persistent local cache for better offline support
+    firestore = initializeFirestore(firebaseApp, {
+      localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() })
+    });
+  } catch (e) {
+    // If already initialized (e.g. during HMR), use existing instance
+    firestore = getFirestore(firebaseApp);
+  }
+
   const auth = getAuth(firebaseApp);
   const googleProvider = new GoogleAuthProvider();
 

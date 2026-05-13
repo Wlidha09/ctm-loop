@@ -15,7 +15,8 @@ import {
   Clock,
   Briefcase,
   AlertCircle,
-  EyeOff
+  EyeOff,
+  WifiOff
 } from "lucide-react"
 import { Skeleton } from "@/components/ui/skeleton"
 import { format } from "date-fns"
@@ -27,6 +28,7 @@ export default function DashboardPage() {
   const db = useFirestore()
   const [profile, setProfile] = useState<UserProfile | null>(null)
   const [loading, setLoading] = useState(true)
+  const [offline, setOffline] = useState(false)
   const [stats, setStats] = useState({
     totalEmployees: 0,
     activePresence: 0,
@@ -43,7 +45,7 @@ export default function DashboardPage() {
           const p = profileSnap.data() as UserProfile
           setProfile(p)
 
-          // Fetch aggregate stats (Strict filtering of 'Dev' role)
+          // Fetch aggregate stats
           const empQuery = query(
             collection(db, "profiles"), 
             where("role", "!=", "Dev")
@@ -56,8 +58,12 @@ export default function DashboardPage() {
             pendingLeave: 3
           })
         }
-      } catch (error) {
-        console.error("Error fetching dashboard data:", error)
+        setOffline(false)
+      } catch (error: any) {
+        console.error("Dashboard: Error fetching data:", error)
+        if (error.code === 'unavailable' || error.message?.includes('offline')) {
+          setOffline(true)
+        }
       } finally {
         setLoading(false)
       }
@@ -77,6 +83,13 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-8 animate-in fade-in duration-500">
+      {offline && (
+        <div className="bg-amber-500/10 border border-amber-500/20 text-amber-600 p-4 rounded-xl flex items-center gap-3">
+          <WifiOff className="h-5 w-5" />
+          <p className="text-sm font-medium">Vous êtes hors ligne. Les données affichées peuvent ne pas être à jour.</p>
+        </div>
+      )}
+
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
           <h1 className="text-4xl font-headline font-bold tracking-tight">Bonjour, {profile?.firstName}</h1>
@@ -150,7 +163,7 @@ export default function DashboardPage() {
               <CardTitle className="text-2xl font-bold">Planning de Présence</CardTitle>
               <CardDescription>Semaine du {format(new Date(), 'dd MMMM', { locale: fr })}</CardDescription>
             </div>
-            <Button variant="outline" size="sm" className="rounded-full px-4">
+            <Button variant="outline" size="sm" className="rounded-full px-4" disabled={offline}>
               Modifier
               <ArrowUpRight className="ml-2 h-4 w-4" />
             </Button>
@@ -196,23 +209,13 @@ export default function DashboardPage() {
                 <p className="text-xs text-muted-foreground font-medium uppercase tracking-tight">Département</p>
               </div>
             </div>
-            <div className="flex items-center p-4 rounded-2xl border bg-background/50 hover:bg-background transition-colors">
-              <div className="h-12 w-12 rounded-xl bg-accent/10 flex items-center justify-center mr-4">
-                <Wallet className="h-6 w-6 text-accent" />
-              </div>
-              <div className="flex-1">
-                <p className="text-sm font-bold text-foreground">{profile?.baseSalary ? `${profile.baseSalary.toLocaleString()} DT` : 'Non défini'}</p>
-                <p className="text-xs text-muted-foreground font-medium uppercase tracking-tight">Salaire de base</p>
-              </div>
-              <Button variant="ghost" size="sm" className="h-8 text-xs text-primary font-bold hover:bg-primary/5">Détails</Button>
-            </div>
             <div className="pt-4 border-t border-dashed">
               <p className="text-xs font-bold text-muted-foreground mb-4 uppercase tracking-widest">Liens Rapides</p>
               <div className="grid grid-cols-2 gap-3">
-                <Button variant="outline" className="text-xs h-10 border-muted rounded-xl">Fiches de Paie</Button>
-                <Button variant="outline" className="text-xs h-10 border-muted rounded-xl">Contrats</Button>
-                <Button variant="outline" className="text-xs h-10 border-muted rounded-xl">Formations</Button>
-                <Button variant="outline" className="text-xs h-10 border-muted rounded-xl">Entretiens</Button>
+                <Button variant="outline" className="text-xs h-10 border-muted rounded-xl" disabled={offline}>Fiches de Paie</Button>
+                <Button variant="outline" className="text-xs h-10 border-muted rounded-xl" disabled={offline}>Contrats</Button>
+                <Button variant="outline" className="text-xs h-10 border-muted rounded-xl" disabled={offline}>Formations</Button>
+                <Button variant="outline" className="text-xs h-10 border-muted rounded-xl" disabled={offline}>Entretiens</Button>
               </div>
             </div>
           </CardContent>

@@ -1,3 +1,4 @@
+
 "use client"
 
 import { useEffect, useState } from "react"
@@ -31,20 +32,27 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
         return
       }
 
-      const profileSnap = await getDoc(doc(db, "profiles", user.uid))
-      if (profileSnap.exists()) {
-        const data = profileSnap.data()
-        setProfile(data)
-        
-        if (!data.onboarded && pathname !== "/onboarding") {
-          router.push("/onboarding")
+      try {
+        const profileSnap = await getDoc(doc(db, "profiles", user.uid))
+        if (profileSnap.exists()) {
+          const data = profileSnap.data()
+          setProfile(data)
+          
+          if (!data.onboarded && pathname !== "/onboarding") {
+            router.push("/onboarding")
+          }
+        } else {
+          if (pathname !== "/onboarding") {
+            router.push("/onboarding")
+          }
         }
-      } else {
-        if (pathname !== "/onboarding") {
-          router.push("/onboarding")
-        }
+      } catch (error) {
+        console.warn("AuthGuard: Profile fetch failed, potentially offline.", error)
+        // If we can't reach the server and don't have a cache, 
+        // we stay on the current page if it's already an auth-protected area
+      } finally {
+        setLoading(false)
       }
-      setLoading(false)
     })
 
     return () => unsubscribe()

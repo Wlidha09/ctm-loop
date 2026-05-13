@@ -8,7 +8,7 @@ import { doc, getDoc, setDoc, serverTimestamp } from "firebase/firestore"
 import { useAuth, useFirestore, useGoogleProvider } from "@/firebase"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
-import { ShieldCheck, Loader2, AlertTriangle } from "lucide-react"
+import { ShieldCheck, Loader2, AlertTriangle, WifiOff } from "lucide-react"
 import { toast } from "@/hooks/use-toast"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 
@@ -31,21 +31,27 @@ export default function LoginPage() {
 
       // Check if user profile exists
       const profileRef = doc(db, "profiles", user.uid)
-      const profileSnap = await getDoc(profileRef)
-
-      if (!profileSnap.exists()) {
-        // Create initial profile for new user
-        await setDoc(profileRef, {
-          uid: user.uid,
-          email: user.email,
-          firstName: user.displayName?.split(' ')[0] || '',
-          lastName: user.displayName?.split(' ').slice(1).join(' ') || '',
-          displayName: user.displayName,
-          photoURL: user.photoURL, // Default avatar from Google
-          onboarded: false,
-          role: 'Employee', // Default role
-          createdAt: serverTimestamp(),
-        }, { merge: true })
+      
+      try {
+        const profileSnap = await getDoc(profileRef)
+        if (!profileSnap.exists()) {
+          // Create initial profile for new user
+          await setDoc(profileRef, {
+            uid: user.uid,
+            email: user.email,
+            firstName: user.displayName?.split(' ')[0] || '',
+            lastName: user.displayName?.split(' ').slice(1).join(' ') || '',
+            displayName: user.displayName,
+            photoURL: user.photoURL,
+            onboarded: false,
+            role: 'Employee',
+            createdAt: serverTimestamp(),
+          }, { merge: true })
+        }
+      } catch (firestoreError: any) {
+        console.warn("Login: Profile fetch/sync failed. If offline, this is expected.", firestoreError)
+        // We continue even if firestore fails, as Auth succeeded. 
+        // Persistence will handle it when back online.
       }
 
       toast({
@@ -53,13 +59,16 @@ export default function LoginPage() {
         description: `Ravi de vous revoir, ${user.displayName || 'utilisateur'}.`,
       })
       
-      // Navigate to dashboard - AuthGuard will handle onboarding redirection if needed
       router.push("/dashboard")
     } catch (error: any) {
       console.error("Auth Error:", error)
+      const isOfflineError = error.message?.includes('offline') || error.code === 'unavailable'
+      
       toast({
-        title: "Erreur d'authentification",
-        description: error.message || "Impossible de se connecter avec Google.",
+        title: isOfflineError ? "Mode hors ligne" : "Erreur d'authentification",
+        description: isOfflineError 
+          ? "La connexion Google nécessite internet. Veuillez vérifier votre connexion."
+          : error.message || "Impossible de se connecter.",
         variant: "destructive"
       })
     } finally {
@@ -87,7 +96,7 @@ export default function LoginPage() {
               <AlertTriangle className="h-4 w-4" />
               <AlertTitle>Configuration manquante</AlertTitle>
               <AlertDescription>
-                Firebase n'est pas encore configuré. Veuillez vérifier vos variables d'environnement.
+                Firebase n'est pas encore configuré.
               </AlertDescription>
             </Alert>
           )}
