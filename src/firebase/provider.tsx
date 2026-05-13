@@ -1,14 +1,16 @@
+
 'use client';
 
 import React, { createContext, useContext } from 'react';
 import { FirebaseApp } from 'firebase/app';
 import { Firestore } from 'firebase/firestore';
-import { Auth } from 'firebase/auth';
+import { Auth, GoogleAuthProvider } from 'firebase/auth';
 
 interface FirebaseContextValue {
   firebaseApp: FirebaseApp | null;
   firestore: Firestore | null;
   auth: Auth | null;
+  googleProvider: GoogleAuthProvider | null;
 }
 
 const FirebaseContext = createContext<FirebaseContextValue | undefined>(undefined);
@@ -18,14 +20,16 @@ export function FirebaseProvider({
   firebaseApp,
   firestore,
   auth,
+  googleProvider,
 }: {
   children: React.ReactNode;
   firebaseApp: FirebaseApp | null;
   firestore: Firestore | null;
   auth: Auth | null;
+  googleProvider: GoogleAuthProvider | null;
 }) {
   return (
-    <FirebaseContext.Provider value={{ firebaseApp, firestore, auth }}>
+    <FirebaseContext.Provider value={{ firebaseApp, firestore, auth, googleProvider }}>
       {children}
     </FirebaseContext.Provider>
   );
@@ -33,7 +37,7 @@ export function FirebaseProvider({
 
 export function useFirebase() {
   const context = useContext(FirebaseContext);
-  if (!context) {
+  if (context === undefined) {
     throw new Error('useFirebase must be used within a FirebaseProvider');
   }
   return context;
@@ -49,4 +53,8 @@ export function useFirestore() {
 
 export function useAuth() {
   return useFirebase().auth;
+}
+
+export function useGoogleProvider() {
+  return useFirebase().googleProvider;
 }

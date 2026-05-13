@@ -1,23 +1,25 @@
 
 import { initializeApp, getApps, getApp, FirebaseApp } from 'firebase/app';
 import { getFirestore, Firestore } from 'firebase/firestore';
-import { getAuth, Auth } from 'firebase/auth';
+import { getAuth, Auth, GoogleAuthProvider } from 'firebase/auth';
 import { firebaseConfig, isFirebaseConfigValid } from './config';
 
 export function initializeFirebase(): {
   firebaseApp: FirebaseApp | null;
   firestore: Firestore | null;
   auth: Auth | null;
+  googleProvider: GoogleAuthProvider | null;
 } {
   if (typeof window === 'undefined' || !isFirebaseConfigValid) {
-    return { firebaseApp: null, firestore: null, auth: null };
+    return { firebaseApp: null, firestore: null, auth: null, googleProvider: null };
   }
 
   const firebaseApp = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
   const firestore = getFirestore(firebaseApp);
   const auth = getAuth(firebaseApp);
+  const googleProvider = new GoogleAuthProvider();
 
-  return { firebaseApp, firestore, auth };
+  return { firebaseApp, firestore, auth, googleProvider };
 }
 
 export * from './provider';

@@ -3,9 +3,9 @@
 
 import { useState } from "react"
 import { useRouter } from "next/navigation"
-import { signInWithPopup, GoogleAuthProvider } from "firebase/auth"
+import { signInWithPopup } from "firebase/auth"
 import { doc, getDoc, setDoc, serverTimestamp } from "firebase/firestore"
-import { useAuth, useFirestore } from "@/firebase"
+import { useAuth, useFirestore, useGoogleProvider } from "@/firebase"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { ShieldCheck, Loader2, AlertTriangle } from "lucide-react"
@@ -17,15 +17,15 @@ export default function LoginPage() {
   const router = useRouter()
   const auth = useAuth()
   const db = useFirestore()
+  const googleProvider = useGoogleProvider()
 
-  const isConfigured = !!auth && !!db
+  const isConfigured = !!auth && !!db && !!googleProvider
 
   const handleGoogleLogin = async () => {
-    if (!auth || !db) return
+    if (!auth || !db || !googleProvider) return
 
     setLoading(true)
     try {
-      const googleProvider = new GoogleAuthProvider()
       const result = await signInWithPopup(auth, googleProvider)
       const user = result.user
 
@@ -34,31 +34,32 @@ export default function LoginPage() {
       const profileSnap = await getDoc(profileRef)
 
       if (!profileSnap.exists()) {
-        // Create initial incomplete profile
+        // Create initial profile for new user
         await setDoc(profileRef, {
           uid: user.uid,
           email: user.email,
           firstName: user.displayName?.split(' ')[0] || '',
           lastName: user.displayName?.split(' ').slice(1).join(' ') || '',
-          photoURL: user.photoURL,
+          displayName: user.displayName,
+          photoURL: user.photoURL, // Default avatar from Google
           onboarded: false,
-          role: 'Employee', // Default
+          role: 'Employee', // Default role
           createdAt: serverTimestamp(),
         }, { merge: true })
-        router.push("/onboarding")
-      } else {
-        const profileData = profileSnap.data()
-        if (!profileData.onboarded) {
-          router.push("/onboarding")
-        } else {
-          router.push("/dashboard")
-        }
       }
+
+      toast({
+        title: "Connexion réussie",
+        description: `Ravi de vous revoir, ${user.displayName || 'utilisateur'}.`,
+      })
+      
+      // Navigate to dashboard - AuthGuard will handle onboarding redirection if needed
+      router.push("/dashboard")
     } catch (error: any) {
       console.error("Auth Error:", error)
       toast({
         title: "Erreur d'authentification",
-        description: error.message || "Impossible de se connecter.",
+        description: error.message || "Impossible de se connecter avec Google.",
         variant: "destructive"
       })
     } finally {
@@ -71,13 +72,13 @@ export default function LoginPage() {
       <Card className="w-full max-w-md shadow-2xl border-primary/20">
         <CardHeader className="text-center space-y-1">
           <div className="flex justify-center mb-4">
-            <div className="bg-primary p-3 rounded-2xl shadow-lg">
+            <div className="bg-primary p-3 rounded-2xl shadow-lg shadow-primary/20">
               <ShieldCheck className="h-10 w-10 text-primary-foreground" />
             </div>
           </div>
-          <CardTitle className="text-3xl font-headline font-bold tracking-tight">Bienvenue</CardTitle>
+          <CardTitle className="text-3xl font-bold tracking-tight">CTM Loop</CardTitle>
           <CardDescription>
-            Connectez-vous à votre espace CTM Loop pour accéder à vos outils RH.
+            Connectez-vous pour accéder à votre espace RH & Paie.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4 pt-4">
@@ -92,7 +93,7 @@ export default function LoginPage() {
           )}
           
           <Button 
-            className="w-full h-12 text-base font-medium transition-all hover:scale-[1.02]" 
+            className="w-full h-12 text-base font-medium transition-all hover:scale-[1.02] shadow-lg shadow-primary/10" 
             variant="outline"
             onClick={handleGoogleLogin}
             disabled={loading || !isConfigured}
@@ -122,9 +123,9 @@ export default function LoginPage() {
             Se connecter avec Google
           </Button>
         </CardContent>
-        <CardFooter className="flex flex-col space-y-4 pb-8">
-          <p className="text-xs text-center text-muted-foreground px-4">
-            En continuant, vous acceptez nos conditions d'utilisation.
+        <CardFooter className="flex flex-col space-y-4 pb-8 text-center">
+          <p className="text-xs text-muted-foreground px-4">
+            En continuant, vous acceptez nos conditions d'utilisation et notre politique de confidentialité.
           </p>
         </CardFooter>
       </Card>
