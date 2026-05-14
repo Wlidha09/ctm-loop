@@ -5,9 +5,8 @@ import { useEffect, useState } from "react"
 import { useRouter, usePathname } from "next/navigation"
 import { useAuth, useFirestore } from "@/firebase"
 import { onAuthStateChanged } from "firebase/auth"
-import { doc, getDoc } from "firebase/firestore"
-import { Loader2, AlertCircle } from "lucide-react"
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
+import { doc, getDoc, setDoc, serverTimestamp } from "firebase/firestore"
+import { ShieldCheck } from "lucide-react"
 
 export function AuthGuard({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true)
@@ -17,20 +16,17 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
   const auth = useAuth()
   const db = useFirestore()
 
-  // Prevent hydration mismatch
   useEffect(() => {
     setMounted(true)
   }, [])
 
   useEffect(() => {
-    if (!auth || !db || !mounted) {
-      if (mounted) setLoading(false)
-      return
-    }
+    if (!auth || !db || !mounted) return
 
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (!user) {
-        if (pathname !== "/login" && pathname !== "/") {
+        // Unprotected routes like landing page don't need redirect
+        if (pathname !== "/" && !pathname.startsWith("/login")) {
           router.push("/login")
         }
         setLoading(false)
@@ -38,47 +34,53 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
       }
 
       try {
-        const profileSnap = await getDoc(doc(db, "profiles", user.uid))
-        if (profileSnap.exists()) {
-          const data = profileSnap.data()
-          if (!data.onboarded && pathname !== "/onboarding") {
-            router.push("/onboarding")
-          }
+        // Check and create profile if missing
+        const profileRef = doc(db, "profiles", user.uid)
+        const profileSnap = await getDoc(profileRef)
+        
+        if (!profileSnap.exists()) {
+          await setDoc(profileRef, {
+            uid: user.uid,
+            email: user.email,
+            firstName: user.displayName?.split(' ')[0] || '',
+            lastName: user.displayName?.split(' ').slice(1).join(' ') || '',
+            displayName: user.displayName,
+            photoURL: user.photoURL,
+            onboarded: false,
+            role: 'Employee',
+            createdAt: serverTimestamp(),
+          }, { merge: true })
+          
+          // New users always go to onboarding
+          router.push("/onboarding")
         } else {
-          if (pathname !== "/onboarding") {
+          const profileData = profileSnap.data()
+          if (!profileData.onboarded && pathname !== "/onboarding") {
             router.push("/onboarding")
           }
         }
       } catch (error) {
-        console.warn("AuthGuard: Profile fetch failed, potentially offline.", error)
+        console.error("AuthGuard error:", error)
       } finally {
         setLoading(false)
       }
     })
 
     return () => unsubscribe()
-  }, [router, pathname, auth, db, mounted])
+  }, [auth, db, mounted, pathname, router])
 
-  if (!mounted) return null
-
-  if (!auth || !db) {
+  if (!mounted || loading) {
     return (
-      <div className="flex h-screen w-full items-center justify-center p-4">
-        <Alert variant="destructive" className="max-w-md">
-          <AlertCircle className="h-4 w-4" />
-          <AlertTitle>Erreur de configuration</AlertTitle>
-          <AlertDescription>
-            Firebase n'est pas initialisé. Veuillez configurer vos variables d'environnement Firebase.
-          </AlertDescription>
-        </Alert>
-      </div>
-    )
-  }
-
-  if (loading) {
-    return (
-      <div className="flex h-screen w-full items-center justify-center">
-        <Loader2 className="h-10 w-10 animate-spin text-primary" />
+      <div className="flex h-screen w-full flex-col items-center justify-center bg-background">
+        <div className="relative flex items-center justify-center">
+          <div className="absolute h-24 w-24 animate-ping rounded-full bg-primary/20" />
+          <div className="relative bg-primary p-4 rounded-2xl shadow-2xl shadow-primary/40 animate-pulse">
+            <ShieldCheck className="h-12 w-12 text-primary-foreground" />
+          </div>
+        </div>
+        <p className="mt-8 text-sm font-medium text-muted-foreground animate-pulse tracking-widest uppercase">
+          Vérification de l'authentification...
+        </p>
       </div>
     )
   }

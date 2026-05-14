@@ -1,56 +1,27 @@
+
 "use client"
 
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { 
   signInWithRedirect, 
-  getRedirectResult, 
   onAuthStateChanged,
   setPersistence,
   browserLocalPersistence
 } from "firebase/auth"
-import { doc, getDoc, setDoc, serverTimestamp } from "firebase/firestore"
-import { useAuth, useFirestore, useGoogleProvider } from "@/firebase"
+import { useAuth, useGoogleProvider } from "@/firebase"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { toast } from "@/hooks/use-toast"
+import { ShieldCheck, Loader2, AlertCircle } from "lucide-react"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
-
-// Simple Inline Icons
-const IconShield = ({ className }: { className?: string }) => (
-  <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
-  </svg>
-)
-
-const IconAlert = ({ className }: { className?: string }) => (
-  <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <circle cx="12" cy="12" r="10" />
-    <line x1="12" y1="8" x2="12" y2="12" />
-    <line x1="12" y1="16" x2="12.01" y2="16" />
-  </svg>
-)
-
-const IconLoader = ({ className }: { className?: string }) => (
-  <svg className={`${className} animate-spin`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-    <line x1="12" y1="2" x2="12" y2="6" />
-    <line x1="12" y1="18" x2="12" y2="22" />
-    <line x1="4.93" y1="4.93" x2="7.76" y2="7.76" />
-    <line x1="16.24" y1="16.24" x2="19.07" y2="19.07" />
-    <line x1="2" y1="12" x2="6" y2="12" />
-    <line x1="18" y1="12" x2="22" y2="12" />
-    <line x1="4.93" y1="19.07" x2="7.76" y2="16.24" />
-    <line x1="16.24" y1="7.76" x2="19.07" y2="4.93" />
-  </svg>
-)
 
 export default function LoginPage() {
   const [loading, setLoading] = useState(true)
-  const [authChecking, setAuthChecking] = useState(true)
+  const [isLoggingIn, setIsLoggingIn] = useState(false)
   const [mounted, setMounted] = useState(false)
   const router = useRouter()
   const auth = useAuth()
-  const db = useFirestore()
   const googleProvider = useGoogleProvider()
 
   useEffect(() => {
@@ -58,75 +29,31 @@ export default function LoginPage() {
   }, [])
 
   useEffect(() => {
-    if (!auth || !db || !mounted) return
+    if (!auth || !mounted) return
 
     // Ensure session persistence
     setPersistence(auth, browserLocalPersistence).catch(console.error)
 
-    // Check current auth state
+    // Global listener for automatic redirection if already logged in
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       if (user) {
         router.push("/dashboard")
       } else {
         setLoading(false)
-        setAuthChecking(false)
       }
     })
 
-    const handleRedirectResult = async () => {
-      try {
-        setAuthChecking(true)
-        const result = await getRedirectResult(auth)
-        if (result) {
-          setLoading(true)
-          const user = result.user
-          const profileRef = doc(db, "profiles", user.uid)
-          const profileSnap = await getDoc(profileRef)
-          
-          if (!profileSnap.exists()) {
-            await setDoc(profileRef, {
-              uid: user.uid,
-              email: user.email,
-              firstName: user.displayName?.split(' ')[0] || '',
-              lastName: user.displayName?.split(' ').slice(1).join(' ') || '',
-              displayName: user.displayName,
-              photoURL: user.photoURL,
-              onboarded: false,
-              role: 'Employee',
-              createdAt: serverTimestamp(),
-            }, { merge: true })
-          }
-
-          toast({
-            title: "Connexion réussie",
-            description: `Bienvenue, ${user.displayName || 'utilisateur'}.`,
-          })
-          router.push("/dashboard")
-        }
-      } catch (error: any) {
-        console.error("Redirect Result Error:", error)
-        toast({
-          title: "Erreur de connexion",
-          description: error.message || "Impossible de finaliser la connexion.",
-          variant: "destructive"
-        })
-      } finally {
-        setAuthChecking(false)
-      }
-    }
-
-    handleRedirectResult()
     return () => unsubscribe()
-  }, [auth, db, mounted, router])
+  }, [auth, mounted, router])
 
   const handleGoogleLogin = async () => {
     if (!auth || !googleProvider) return
-    setLoading(true)
+    setIsLoggingIn(true)
     try {
       await signInWithRedirect(auth, googleProvider)
     } catch (error: any) {
       console.error("Auth Error:", error)
-      setLoading(false)
+      setIsLoggingIn(false)
       toast({
         title: "Erreur d'authentification",
         description: error.message || "Impossible de lancer la connexion.",
@@ -135,9 +62,17 @@ export default function LoginPage() {
     }
   }
 
-  if (!mounted) return null
+  if (!mounted || loading) {
+    return (
+      <div className="flex h-screen w-full flex-col items-center justify-center bg-background">
+        <div className="relative bg-primary p-4 rounded-2xl shadow-2xl shadow-primary/40 animate-pulse">
+          <ShieldCheck className="h-12 w-12 text-primary-foreground" />
+        </div>
+      </div>
+    )
+  }
 
-  const isConfigured = !!auth && !!db && !!googleProvider
+  const isConfigured = !!auth && !!googleProvider
 
   return (
     <div className="flex items-center justify-center min-h-screen bg-background px-4">
@@ -145,21 +80,21 @@ export default function LoginPage() {
         <CardHeader className="text-center space-y-1">
           <div className="flex justify-center mb-4">
             <div className="bg-primary p-3 rounded-2xl shadow-lg shadow-primary/20">
-              <IconShield className="h-10 w-10 text-primary-foreground" />
+              <ShieldCheck className="h-10 w-10 text-primary-foreground" />
             </div>
           </div>
           <CardTitle className="text-3xl font-bold tracking-tight">CTM Loop</CardTitle>
           <CardDescription>
-            {authChecking ? "Vérification de l'authentification..." : "Connectez-vous pour accéder à votre espace RH & Paie."}
+            Connectez-vous pour accéder à votre espace RH & Paie.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4 pt-4">
           {!isConfigured && (
             <Alert variant="destructive" className="mb-4">
-              <IconAlert className="h-4 w-4" />
+              <AlertCircle className="h-4 w-4" />
               <AlertTitle>Configuration manquante</AlertTitle>
               <AlertDescription>
-                Firebase n'est pas encore initialisé. Vérifiez vos variables d'environnement.
+                Firebase n'est pas correctement initialisé. Vérifiez vos variables d'environnement.
               </AlertDescription>
             </Alert>
           )}
@@ -168,10 +103,10 @@ export default function LoginPage() {
             className="w-full h-12 text-base font-medium transition-all hover:scale-[1.02] shadow-lg shadow-primary/10" 
             variant="outline"
             onClick={handleGoogleLogin}
-            disabled={loading || authChecking || !isConfigured}
+            disabled={isLoggingIn || !isConfigured}
           >
-            {loading || authChecking ? (
-              <IconLoader className="mr-2 h-5 w-5" />
+            {isLoggingIn ? (
+              <Loader2 className="mr-2 h-5 w-5 animate-spin text-primary" />
             ) : (
               <svg className="mr-2 h-5 w-5" viewBox="0 0 24 24">
                 <path
@@ -192,7 +127,7 @@ export default function LoginPage() {
                 />
               </svg>
             )}
-            {authChecking ? "Chargement..." : "Se connecter avec Google"}
+            {isLoggingIn ? "Redirection..." : "Se connecter avec Google"}
           </Button>
         </CardContent>
         <CardFooter className="flex flex-col space-y-4 pb-8 text-center">
