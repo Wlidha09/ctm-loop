@@ -2,7 +2,13 @@
 
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
-import { signInWithRedirect, getRedirectResult, onAuthStateChanged } from "firebase/auth"
+import { 
+  signInWithRedirect, 
+  getRedirectResult, 
+  onAuthStateChanged,
+  setPersistence,
+  browserLocalPersistence
+} from "firebase/auth"
 import { doc, getDoc, setDoc, serverTimestamp } from "firebase/firestore"
 import { useAuth, useFirestore, useGoogleProvider } from "@/firebase"
 import { Button } from "@/components/ui/button"
@@ -10,7 +16,7 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { toast } from "@/hooks/use-toast"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 
-// Simple Inline Icons to replace lucide-react in problematic areas
+// Simple Inline Icons
 const IconShield = ({ className }: { className?: string }) => (
   <svg className={className} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
     <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
@@ -40,6 +46,7 @@ const IconLoader = ({ className }: { className?: string }) => (
 
 export default function LoginPage() {
   const [loading, setLoading] = useState(true)
+  const [authChecking, setAuthChecking] = useState(true)
   const [mounted, setMounted] = useState(false)
   const router = useRouter()
   const auth = useAuth()
@@ -53,16 +60,22 @@ export default function LoginPage() {
   useEffect(() => {
     if (!auth || !db || !mounted) return
 
+    // Ensure session persistence
+    setPersistence(auth, browserLocalPersistence).catch(console.error)
+
+    // Check current auth state
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       if (user) {
         router.push("/dashboard")
       } else {
         setLoading(false)
+        setAuthChecking(false)
       }
     })
 
     const handleRedirectResult = async () => {
       try {
+        setAuthChecking(true)
         const result = await getRedirectResult(auth)
         if (result) {
           setLoading(true)
@@ -97,7 +110,8 @@ export default function LoginPage() {
           description: error.message || "Impossible de finaliser la connexion.",
           variant: "destructive"
         })
-        setLoading(false)
+      } finally {
+        setAuthChecking(false)
       }
     }
 
@@ -136,7 +150,7 @@ export default function LoginPage() {
           </div>
           <CardTitle className="text-3xl font-bold tracking-tight">CTM Loop</CardTitle>
           <CardDescription>
-            Connectez-vous pour accéder à votre espace RH & Paie.
+            {authChecking ? "Vérification de l'authentification..." : "Connectez-vous pour accéder à votre espace RH & Paie."}
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4 pt-4">
@@ -154,9 +168,9 @@ export default function LoginPage() {
             className="w-full h-12 text-base font-medium transition-all hover:scale-[1.02] shadow-lg shadow-primary/10" 
             variant="outline"
             onClick={handleGoogleLogin}
-            disabled={loading || !isConfigured}
+            disabled={loading || authChecking || !isConfigured}
           >
-            {loading ? (
+            {loading || authChecking ? (
               <IconLoader className="mr-2 h-5 w-5" />
             ) : (
               <svg className="mr-2 h-5 w-5" viewBox="0 0 24 24">
@@ -178,7 +192,7 @@ export default function LoginPage() {
                 />
               </svg>
             )}
-            Se connecter avec Google
+            {authChecking ? "Chargement..." : "Se connecter avec Google"}
           </Button>
         </CardContent>
         <CardFooter className="flex flex-col space-y-4 pb-8 text-center">
