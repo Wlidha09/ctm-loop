@@ -1,3 +1,4 @@
+
 import { initializeApp, getApps, getApp, FirebaseApp } from 'firebase/app';
 import { 
   getFirestore, 
@@ -15,32 +16,38 @@ export function initializeFirebase(): {
   auth: Auth | null;
   googleProvider: GoogleAuthProvider | null;
 } {
+  // Never initialize on server-side or without a valid config
   if (typeof window === 'undefined' || !isFirebaseConfigValid) {
     return { firebaseApp: null, firestore: null, auth: null, googleProvider: null };
   }
 
-  const firebaseApp = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
-  
-  let firestore: Firestore;
   try {
-    firestore = initializeFirestore(firebaseApp, {
-      localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() })
+    const firebaseApp = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
+    
+    let firestore: Firestore;
+    try {
+      firestore = initializeFirestore(firebaseApp, {
+        localCache: persistentLocalCache({ tabManager: persistentMultipleTabManager() })
+      });
+    } catch (e) {
+      firestore = getFirestore(firebaseApp);
+    }
+
+    const auth = getAuth(firebaseApp);
+    
+    // Explicitly set persistence to avoid session loss
+    setPersistence(auth, browserLocalPersistence).catch((err) => {
+      console.error("Firebase Persistence Error:", err);
     });
-  } catch (e) {
-    firestore = getFirestore(firebaseApp);
+
+    const googleProvider = new GoogleAuthProvider();
+    googleProvider.setCustomParameters({ prompt: 'select_account' });
+
+    return { firebaseApp, firestore, auth, googleProvider };
+  } catch (error) {
+    console.error("Error initializing Firebase:", error);
+    return { firebaseApp: null, firestore: null, auth: null, googleProvider: null };
   }
-
-  const auth = getAuth(firebaseApp);
-  
-  // Initialisation explicite de la persistance locale pour éviter les déconnexions sur Vercel
-  setPersistence(auth, browserLocalPersistence).catch((err) => {
-    console.error("Firebase Persistence Error:", err);
-  });
-
-  const googleProvider = new GoogleAuthProvider();
-  googleProvider.setCustomParameters({ prompt: 'select_account' });
-
-  return { firebaseApp, firestore, auth, googleProvider };
 }
 
 export * from './provider';

@@ -9,7 +9,16 @@ export const firebaseConfig = {
 };
 
 /**
- * Validates if the Firebase configuration is potentially valid.
- * This helps prevent initialization errors when environment variables are missing.
+ * Validates if the Firebase configuration is valid.
+ * Throws an explicit error if the API Key is missing on the client side.
  */
-export const isFirebaseConfigValid = !!firebaseConfig.apiKey && !!firebaseConfig.projectId;
+export const validateFirebaseConfig = () => {
+  if (typeof window !== 'undefined') {
+    if (!firebaseConfig.apiKey || firebaseConfig.apiKey === "") {
+      console.error("Firebase Configuration Error: NEXT_PUBLIC_FIREBASE_API_KEY is missing. Check your Vercel Environment Variables.");
+    }
+  }
+  return !!firebaseConfig.apiKey && !!firebaseConfig.projectId;
+};
+
+export const isFirebaseConfigValid = validateFirebaseConfig();
