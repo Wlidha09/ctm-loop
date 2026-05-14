@@ -1,8 +1,7 @@
-
 "use client"
 
-import { useState } from "react"
-import { signInWithRedirect } from "firebase/auth"
+import { useEffect, useState } from "react"
+import { signInWithRedirect, getRedirectResult } from "firebase/auth"
 import { useAuth, useGoogleProvider } from "@/firebase"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
@@ -11,9 +10,42 @@ import { ShieldCheck, Loader2, AlertCircle } from "lucide-react"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 
 export default function LoginPage() {
-  const [isLoggingIn, setIsLoggingIn] = useState(false)
+  const [isLoggingIn, setIsLoggingIn] = useState(true)
   const auth = useAuth()
   const googleProvider = useGoogleProvider()
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      console.log("Current Domain:", window.location.hostname)
+    }
+
+    const checkRedirect = async () => {
+      if (!auth) {
+        setIsLoggingIn(false)
+        return
+      }
+
+      try {
+        // Tentative de récupération du résultat après redirection
+        const result = await getRedirectResult(auth)
+        if (result) {
+          console.log("Auth redirect result success:", result.user.email)
+          // Le profil sera créé ou vérifié par l'AuthGuard global
+        }
+      } catch (error: any) {
+        console.error("Redirect Result Error:", error)
+        toast({
+          title: "Erreur d'authentification",
+          description: error.message || "Impossible de récupérer la session.",
+          variant: "destructive"
+        })
+      } finally {
+        setIsLoggingIn(false)
+      }
+    }
+
+    checkRedirect()
+  }, [auth])
 
   const handleGoogleLogin = async () => {
     if (!auth || !googleProvider) return
@@ -86,7 +118,7 @@ export default function LoginPage() {
                 />
               </svg>
             )}
-            {isLoggingIn ? "Redirection..." : "Se connecter avec Google"}
+            {isLoggingIn ? "Vérification..." : "Se connecter avec Google"}
           </Button>
         </CardContent>
         <CardFooter className="flex flex-col space-y-4 pb-8 text-center">

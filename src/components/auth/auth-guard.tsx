@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useEffect, useState } from "react"
@@ -22,60 +21,62 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
     const handleAuthRedirects = async () => {
       const isPublicRoute = pathname === "/" || pathname === "/login"
 
-      if (!user) {
-        // Utilisateur déconnecté (null)
+      if (user === null) {
+        // Utilisateur explicitement déconnecté
         if (!isPublicRoute) {
-          console.log("AuthGuard: Utilisateur nul sur route protégée, redirection vers /login")
+          console.log("AuthGuard: Utilisateur déconnecté, redirection vers /login")
           router.replace("/login")
         }
         return
       }
 
-      // Utilisateur connecté (User object)
-      try {
-        setIsVerifyingProfile(true)
-        
-        // Force refresh du token pour éviter les sessions expirées
-        await user.getIdToken(true)
-
-        const profileRef = doc(db, "profiles", user.uid)
-        const profileSnap = await getDoc(profileRef)
-        
-        if (!profileSnap.exists()) {
-          console.log("AuthGuard: Création automatique du profil manquant")
-          await setDoc(profileRef, {
-            uid: user.uid,
-            email: user.email,
-            firstName: user.displayName?.split(' ')[0] || '',
-            lastName: user.displayName?.split(' ').slice(1).join(' ') || '',
-            displayName: user.displayName,
-            photoURL: user.photoURL,
-            onboarded: false,
-            role: 'Employee',
-            createdAt: serverTimestamp(),
-          }, { merge: true })
+      if (user) {
+        // Utilisateur connecté
+        try {
+          setIsVerifyingProfile(true)
           
-          router.replace("/onboarding")
-        } else {
-          const profileData = profileSnap.data()
-          if (!profileData.onboarded && pathname !== "/onboarding") {
+          // Force refresh du token pour éviter les sessions expirées
+          await user.getIdToken(true)
+
+          const profileRef = doc(db, "profiles", user.uid)
+          const profileSnap = await getDoc(profileRef)
+          
+          if (!profileSnap.exists()) {
+            console.log("AuthGuard: Création automatique du profil manquant pour", user.email)
+            await setDoc(profileRef, {
+              uid: user.uid,
+              email: user.email,
+              firstName: user.displayName?.split(' ')[0] || '',
+              lastName: user.displayName?.split(' ').slice(1).join(' ') || '',
+              displayName: user.displayName,
+              photoURL: user.photoURL,
+              onboarded: false,
+              role: 'Employee',
+              createdAt: serverTimestamp(),
+            }, { merge: true })
+            
             router.replace("/onboarding")
-          } else if (pathname === "/login" || pathname === "/") {
-            // Si connecté et sur login/home, on va au dashboard
-            router.replace("/dashboard")
+          } else {
+            const profileData = profileSnap.data()
+            if (!profileData.onboarded && pathname !== "/onboarding") {
+              router.replace("/onboarding")
+            } else if (pathname === "/login" || pathname === "/") {
+              // Si connecté et sur login/home, on va au dashboard
+              router.replace("/dashboard")
+            }
           }
+        } catch (error) {
+          console.error("AuthGuard verification error:", error)
+        } finally {
+          setIsVerifyingProfile(false)
         }
-      } catch (error) {
-        console.error("AuthGuard error:", error)
-      } finally {
-        setIsVerifyingProfile(false)
       }
     }
 
     handleAuthRedirects()
   }, [user, loading, db, auth, pathname, router])
 
-  // Écran de chargement complet si l'état est undefined ou si on vérifie le profil
+  // Écran de chargement complet si l'état est undefined (chargement Firebase) ou si on vérifie le profil Firestore
   if (loading || isVerifyingProfile) {
     return (
       <div className="flex h-screen w-full flex-col items-center justify-center bg-background">
