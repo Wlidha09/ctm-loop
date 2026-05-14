@@ -1,14 +1,8 @@
 
 "use client"
 
-import { useState, useEffect } from "react"
-import { useRouter } from "next/navigation"
-import { 
-  signInWithRedirect, 
-  onAuthStateChanged,
-  setPersistence,
-  browserLocalPersistence
-} from "firebase/auth"
+import { useState } from "react"
+import { signInWithRedirect } from "firebase/auth"
 import { useAuth, useGoogleProvider } from "@/firebase"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
@@ -17,34 +11,9 @@ import { ShieldCheck, Loader2, AlertCircle } from "lucide-react"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 
 export default function LoginPage() {
-  const [loading, setLoading] = useState(true)
   const [isLoggingIn, setIsLoggingIn] = useState(false)
-  const [mounted, setMounted] = useState(false)
-  const router = useRouter()
   const auth = useAuth()
   const googleProvider = useGoogleProvider()
-
-  useEffect(() => {
-    setMounted(true)
-  }, [])
-
-  useEffect(() => {
-    if (!auth || !mounted) return
-
-    // Ensure session persistence
-    setPersistence(auth, browserLocalPersistence).catch(console.error)
-
-    // Global listener for automatic redirection if already logged in
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
-      if (user) {
-        router.push("/dashboard")
-      } else {
-        setLoading(false)
-      }
-    })
-
-    return () => unsubscribe()
-  }, [auth, mounted, router])
 
   const handleGoogleLogin = async () => {
     if (!auth || !googleProvider) return
@@ -60,16 +29,6 @@ export default function LoginPage() {
         variant: "destructive"
       })
     }
-  }
-
-  if (!mounted || loading) {
-    return (
-      <div className="flex h-screen w-full flex-col items-center justify-center bg-background">
-        <div className="relative bg-primary p-4 rounded-2xl shadow-2xl shadow-primary/40 animate-pulse">
-          <ShieldCheck className="h-12 w-12 text-primary-foreground" />
-        </div>
-      </div>
-    )
   }
 
   const isConfigured = !!auth && !!googleProvider

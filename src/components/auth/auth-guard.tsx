@@ -3,42 +3,46 @@
 
 import { useEffect, useState } from "react"
 import { useRouter, usePathname } from "next/navigation"
-import { useAuth, useFirestore } from "@/firebase"
-import { onAuthStateChanged } from "firebase/auth"
+import { useAuth, useFirestore, useUser } from "@/firebase"
 import { doc, getDoc, setDoc, serverTimestamp } from "firebase/firestore"
-import { ShieldCheck } from "lucide-react"
+import { ShieldCheck, Loader2 } from "lucide-react"
 
 export function AuthGuard({ children }: { children: React.ReactNode }) {
-  const [loading, setLoading] = useState(true)
-  const [mounted, setMounted] = useState(false)
+  const { user, loading } = useUser()
   const router = useRouter()
   const pathname = usePathname()
   const auth = useAuth()
   const db = useFirestore()
+  const [isVerifyingProfile, setIsVerifyingProfile] = useState(false)
 
   useEffect(() => {
-    setMounted(true)
-  }, [])
+    // Si on charge encore l'état auth, on ne fait rien
+    if (loading || !db || !auth) return
 
-  useEffect(() => {
-    if (!auth || !db || !mounted) return
+    const handleAuthRedirects = async () => {
+      const isPublicRoute = pathname === "/" || pathname === "/login"
 
-    const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (!user) {
-        // Unprotected routes like landing page don't need redirect
-        if (pathname !== "/" && !pathname.startsWith("/login")) {
-          router.push("/login")
+        // Utilisateur déconnecté (null)
+        if (!isPublicRoute) {
+          console.log("AuthGuard: Utilisateur nul sur route protégée, redirection vers /login")
+          router.replace("/login")
         }
-        setLoading(false)
         return
       }
 
+      // Utilisateur connecté (User object)
       try {
-        // Check and create profile if missing
+        setIsVerifyingProfile(true)
+        
+        // Force refresh du token pour éviter les sessions expirées
+        await user.getIdToken(true)
+
         const profileRef = doc(db, "profiles", user.uid)
         const profileSnap = await getDoc(profileRef)
         
         if (!profileSnap.exists()) {
+          console.log("AuthGuard: Création automatique du profil manquant")
           await setDoc(profileRef, {
             uid: user.uid,
             email: user.email,
@@ -51,25 +55,28 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
             createdAt: serverTimestamp(),
           }, { merge: true })
           
-          // New users always go to onboarding
-          router.push("/onboarding")
+          router.replace("/onboarding")
         } else {
           const profileData = profileSnap.data()
           if (!profileData.onboarded && pathname !== "/onboarding") {
-            router.push("/onboarding")
+            router.replace("/onboarding")
+          } else if (pathname === "/login" || pathname === "/") {
+            // Si connecté et sur login/home, on va au dashboard
+            router.replace("/dashboard")
           }
         }
       } catch (error) {
         console.error("AuthGuard error:", error)
       } finally {
-        setLoading(false)
+        setIsVerifyingProfile(false)
       }
-    })
+    }
 
-    return () => unsubscribe()
-  }, [auth, db, mounted, pathname, router])
+    handleAuthRedirects()
+  }, [user, loading, db, auth, pathname, router])
 
-  if (!mounted || loading) {
+  // Écran de chargement complet si l'état est undefined ou si on vérifie le profil
+  if (loading || isVerifyingProfile) {
     return (
       <div className="flex h-screen w-full flex-col items-center justify-center bg-background">
         <div className="relative flex items-center justify-center">
@@ -78,9 +85,12 @@ export function AuthGuard({ children }: { children: React.ReactNode }) {
             <ShieldCheck className="h-12 w-12 text-primary-foreground" />
           </div>
         </div>
-        <p className="mt-8 text-sm font-medium text-muted-foreground animate-pulse tracking-widest uppercase">
-          Vérification de l'authentification...
-        </p>
+        <div className="mt-8 flex flex-col items-center gap-2 text-center">
+          <p className="text-sm font-medium text-muted-foreground tracking-widest uppercase animate-pulse">
+            Vérification de la session CTM Loop...
+          </p>
+          <Loader2 className="h-4 w-4 animate-spin text-primary/60" />
+        </div>
       </div>
     )
   }
